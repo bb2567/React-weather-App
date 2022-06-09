@@ -4,8 +4,10 @@ import { ReactComponent as DayCloudyIcon } from "./images/day-cloudy.svg";
 import { ReactComponent as RainIcon } from "./images/rain.svg";
 import { ReactComponent as AirFlowIcon } from './images/airFlow.svg'
 import { ReactComponent as RefreshIcon } from './images/refresh.svg'
+import { useState } from "react";
 
 
+// css
 const theme = {
   light: {
     backgroundColor: '#ededed',
@@ -129,8 +131,11 @@ const Refresh = styled.div`
 
 
 function App() {
+  const [currentTheme, setCurrentTheme] = useState('light')
+ 
+
   return (
-    <ThemeProvider theme={theme.light}>
+    <ThemeProvider theme={theme[currentTheme]}>
       <Container >
         <WeatherCard>
           <Location>台北市</Location>
