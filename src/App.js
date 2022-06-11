@@ -5,7 +5,7 @@ import { ReactComponent as RainIcon } from "./images/rain.svg";
 import { ReactComponent as AirFlowIcon } from './images/airFlow.svg'
 import { ReactComponent as RefreshIcon } from './images/refresh.svg'
 import { useState } from "react";
-
+import { formatTime } from './commons/helper'
 
 // css
 const theme = {
@@ -132,25 +132,33 @@ const Refresh = styled.div`
 
 function App() {
   const [currentTheme, setCurrentTheme] = useState('light')
- 
+
+  const [currentWeather, setCurrentWeather] = useState({
+    locationName: '臺北市',
+    description: '多雲時晴',
+    windSpeed: 1.1,
+    temperature: 22.9,
+    rainPossibility: 48.3,
+    observationTime: '2022-12-12 21:00:00'
+  })
 
   return (
     <ThemeProvider theme={theme[currentTheme]}>
       <Container >
         <WeatherCard>
-          <Location>台北市</Location>
-          <Description>多雲時晴</Description>
+          <Location>{currentWeather.locationName}</Location>
+          <Description>{currentWeather.description}</Description>
           <CurrentWeather>
-            <Temperature>23<Celsius>°C</Celsius></Temperature>
+            <Temperature>{Math.round(currentWeather.temperature)}<Celsius>°C</Celsius></Temperature>
             <DayCloudyIcon />
           </CurrentWeather>
           <AirFlow>
-            <AirFlowIcon />23 m/h
+            <AirFlowIcon />{currentWeather.windSpeed} m/h
           </AirFlow>
           <Rain>
-            <RainIcon />48%
+            <RainIcon />{currentWeather.rainPossibility}%
           </Rain>
-          <Refresh>最後觀測資料：上午12:00 <RefreshIcon /></Refresh>
+          <Refresh>最後觀測資料：{formatTime(currentWeather.observationTime)}<RefreshIcon /></Refresh>
         </WeatherCard>
       </Container>
     </ThemeProvider>
