@@ -129,18 +129,55 @@ const Refresh = styled.div`
   }
 `;
 
+const AUTHORIZATION_KEY = 'CWB-C03223CF-F9F4-43BE-B863-696E611185B0'
+const LOCATION_NAME = '臺北'
+
+const array1 = [1, 2, 3, 4];
+
+
+
 
 function App() {
   const [currentTheme, setCurrentTheme] = useState('light')
-
   const [currentWeather, setCurrentWeather] = useState({
     locationName: '臺北市',
     description: '多雲時晴',
-    windSpeed: 1.1,
     temperature: 22.9,
+    windSpeed: 1.1,
     rainPossibility: 48.3,
-    observationTime: '2022-12-12 21:00:00'
+    observationTime: '2022-12-12 14:00:00'
   })
+
+  const handleClick = () => {
+    fetch(`https://opendata.cwb.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization=${AUTHORIZATION_KEY}&format=JSON&locationName=${LOCATION_NAME}`)
+      .then(res => res.json()).then(data => {
+        // STEP 1：取資料
+        const locationData = data.records.location[0];
+
+        // STEP 2：過濾資料
+        const weatherElements = locationData.weatherElement.reduce((prev, curr) => {
+          // 判斷陣列內有無 'WDSD', 'TEMP' 
+          if (['WDSD','TEMP'].includes(curr.elementName)) { prev[curr.elementName] = curr.elementValue; }
+          return prev;
+
+        }, {})
+        console.log(weatherElements)   
+        // {WDSD: '3.50', TEMP: '23.70'}
+        console.log(locationData);
+        // STEP 2：更新資料
+        setCurrentWeather({
+          ...currentWeather,
+          locationName: locationData.locationName,
+          windSpeed: weatherElements.WDSD,
+          temperature: weatherElements.TEMP,
+          observationTime: locationData.time.obsTime,
+        })
+
+      })
+
+
+  }
+
 
   return (
     <ThemeProvider theme={theme[currentTheme]}>
@@ -158,7 +195,7 @@ function App() {
           <Rain>
             <RainIcon />{currentWeather.rainPossibility}%
           </Rain>
-          <Refresh>最後觀測資料：{formatTime(currentWeather.observationTime)}<RefreshIcon /></Refresh>
+          <Refresh onClick={handleClick}>最後觀測資料：{formatTime(currentWeather.observationTime)}<RefreshIcon /></Refresh>
         </WeatherCard>
       </Container>
     </ThemeProvider>
