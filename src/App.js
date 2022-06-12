@@ -4,7 +4,8 @@ import { ReactComponent as DayCloudyIcon } from "./images/day-cloudy.svg";
 import { ReactComponent as RainIcon } from "./images/rain.svg";
 import { ReactComponent as AirFlowIcon } from './images/airFlow.svg'
 import { ReactComponent as RefreshIcon } from './images/refresh.svg'
-import { useState } from "react";
+import { ReactComponent as LoadingIcon } from './images/loading.svg'
+import { useState, useEffect } from "react";
 import { formatTime } from './commons/helper'
 
 // css
@@ -120,20 +121,28 @@ const Refresh = styled.div`
   display: inline-flex;
   align-items: flex-end;
   color: ${({ theme }) => theme.textColor};
-
   svg {
     margin-left: 10px;
     width: 15px;
     height: 15px;
     cursor: pointer;
+    /* STEP 2：使用 rotate 動畫效果在 svg 圖示上 */
+    animation: rotate infinite 1.5s linear;
+    animation-duration: ${({ isLoading }) => (isLoading ? '1.5s' : '0s')};.
+  }
+  /* STEP 1：定義旋轉的動畫效果，並取名為 rotate */
+  @keyframes rotate {
+    from {
+      transform: rotate(360deg);
+    }
+    to {
+      transform: rotate(0deg);
+    }
   }
 `;
 
 const AUTHORIZATION_KEY = 'CWB-C03223CF-F9F4-43BE-B863-696E611185B0'
 const LOCATION_NAME = '臺北'
-
-const array1 = [1, 2, 3, 4];
-
 
 
 
@@ -145,25 +154,31 @@ function App() {
     temperature: 22.9,
     windSpeed: 1.1,
     rainPossibility: 48.3,
-    observationTime: '2022-12-12 14:00:00'
+    observationTime: '2022-12-12 14:00:00',
+    isLoading: true
   })
 
-  const handleClick = () => {
+
+  useEffect(() => { fetchCurrentWeather() }, [])
+
+  // fetch API
+  const fetchCurrentWeather = () => {
+
+    setCurrentWeather(prevState => {
+      return { ...prevState, isLoading: true }
+    })
+
     fetch(`https://opendata.cwb.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization=${AUTHORIZATION_KEY}&format=JSON&locationName=${LOCATION_NAME}`)
       .then(res => res.json()).then(data => {
         // STEP 1：取資料
         const locationData = data.records.location[0];
-
         // STEP 2：過濾資料
         const weatherElements = locationData.weatherElement.reduce((prev, curr) => {
           // 判斷陣列內有無 'WDSD', 'TEMP' 
-          if (['WDSD','TEMP'].includes(curr.elementName)) { prev[curr.elementName] = curr.elementValue; }
+          if (['WDSD', 'TEMP'].includes(curr.elementName)) { prev[curr.elementName] = curr.elementValue; }
           return prev;
-
         }, {})
-        console.log(weatherElements)   
-        // {WDSD: '3.50', TEMP: '23.70'}
-        console.log(locationData);
+        // console.log(weatherElements)   {WDSD: '3.50', TEMP: '23.70'}
         // STEP 2：更新資料
         setCurrentWeather({
           ...currentWeather,
@@ -171,17 +186,16 @@ function App() {
           windSpeed: weatherElements.WDSD,
           temperature: weatherElements.TEMP,
           observationTime: locationData.time.obsTime,
+          isLoading: false
         })
-
       })
-
-
   }
 
 
   return (
     <ThemeProvider theme={theme[currentTheme]}>
       <Container >
+        {console.log('render, isLading', currentWeather.isLoading)}
         <WeatherCard>
           <Location>{currentWeather.locationName}</Location>
           <Description>{currentWeather.description}</Description>
@@ -195,7 +209,10 @@ function App() {
           <Rain>
             <RainIcon />{currentWeather.rainPossibility}%
           </Rain>
-          <Refresh onClick={handleClick}>最後觀測資料：{formatTime(currentWeather.observationTime)}<RefreshIcon /></Refresh>
+          <Refresh onClick={fetchCurrentWeather} isLoading={currentWeather.isLoading}>
+          最後觀測資料：{formatTime(currentWeather.observationTime)}
+          {currentWeather.isLoading ? <LoadingIcon/>:<RefreshIcon />}
+          </Refresh>
         </WeatherCard>
       </Container>
     </ThemeProvider>
