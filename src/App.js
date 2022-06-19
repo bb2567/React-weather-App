@@ -147,27 +147,31 @@ const LOCATION_NAME = '臺北'
 
 
 function App() {
+
   const [currentTheme, setCurrentTheme] = useState('light')
-  const [currentWeather, setCurrentWeather] = useState({
-    locationName: '臺北市',
-    description: '多雲時晴',
-    temperature: 22.9,
-    windSpeed: 1.1,
-    rainPossibility: 48.3,
-    observationTime: '2022-12-12 14:00:00',
-    isLoading: true
+  const [currentElement, setCurrentElement] = useState({
+    locationName: '',
+    description: '',
+    rainPossibility: 0,
+    temperature: 0,
+    windSpeed: 0,
+    observationTime: new Date(),
+    isLoading: true,
+    comfortability: '',
+    weatherCode: 0,
   })
 
+  // 解構賦值
+  const { observationTime, locationName, description, windSpeed, temperature, rainPossibility, isLoading } = currentElement;
 
-  useEffect(() => { fetchCurrentWeather() }, [])
+  useEffect(() => { fetchCurrentWeather(); fetchWeatherForecast() }, [])
+
 
   // fetch API
   const fetchCurrentWeather = () => {
-
-    setCurrentWeather(prevState => {
+    setCurrentElement(prevState => {
       return { ...prevState, isLoading: true }
     })
-
     fetch(`https://opendata.cwb.gov.tw/api/v1/rest/datastore/O-A0003-001?Authorization=${AUTHORIZATION_KEY}&format=JSON&locationName=${LOCATION_NAME}`)
       .then(res => res.json()).then(data => {
         // STEP 1：取資料
@@ -180,14 +184,42 @@ function App() {
         }, {})
         // console.log(weatherElements)   {WDSD: '3.50', TEMP: '23.70'}
         // STEP 2：更新資料
-        setCurrentWeather({
-          ...currentWeather,
+        setCurrentElement(prevState => ({
+          ...prevState,
           locationName: locationData.locationName,
           windSpeed: weatherElements.WDSD,
           temperature: weatherElements.TEMP,
           observationTime: locationData.time.obsTime,
           isLoading: false
+
+        }))
+      })
+
+  }
+
+  const fetchWeatherForecast = () => {
+
+    fetch(`https://opendata.cwb.gov.tw/api/v1/rest/datastore/F-C0032-001?Authorization=${AUTHORIZATION_KEY}`)
+      .then(res => res.json()).then(data => {
+
+        // 取某縣市的資料
+        const locationData = data.records.location[0]
+        const weatherElements = locationData.weatherElement.reduce((neededElements, item) => {
+          // 只保留 'Wx','PoP','CI' 
+          if (['Wx', 'PoP', 'CI'].includes(item.elementName)) {
+
+            neededElements[item.elementName] = item.time[0].parameter
+          }
+          return neededElements
         })
+
+        console.log(weatherElements);
+        setCurrentElement(prevState => ({
+          ...prevState,
+          description: weatherElements.CI.parameterName,
+
+          rainPossibility: weatherElements.PoP.parameterName,
+        }))
       })
   }
 
@@ -195,23 +227,23 @@ function App() {
   return (
     <ThemeProvider theme={theme[currentTheme]}>
       <Container >
-        {console.log('render, isLading', currentWeather.isLoading)}
+        {/* {console.log('render, isLoading', isLoading)} */}
         <WeatherCard>
-          <Location>{currentWeather.locationName}</Location>
-          <Description>{currentWeather.description}</Description>
+          <Location>{locationName}</Location>
+          <Description>{description}</Description>
           <CurrentWeather>
-            <Temperature>{Math.round(currentWeather.temperature)}<Celsius>°C</Celsius></Temperature>
+            <Temperature>{Math.round(temperature)}<Celsius>°C</Celsius></Temperature>
             <DayCloudyIcon />
           </CurrentWeather>
           <AirFlow>
-            <AirFlowIcon />{currentWeather.windSpeed} m/h
+            <AirFlowIcon />{windSpeed} m/h
           </AirFlow>
           <Rain>
-            <RainIcon />{currentWeather.rainPossibility}%
+            <RainIcon />{rainPossibility}%
           </Rain>
-          <Refresh onClick={fetchCurrentWeather} isLoading={currentWeather.isLoading}>
-          最後觀測資料：{formatTime(currentWeather.observationTime)}
-          {currentWeather.isLoading ? <LoadingIcon/>:<RefreshIcon />}
+          <Refresh onClick={fetchCurrentWeather} isLoading={isLoading}>
+            最後觀測資料：{formatTime(observationTime)}
+            {isLoading ? <LoadingIcon /> : <RefreshIcon />}
           </Refresh>
         </WeatherCard>
       </Container>
